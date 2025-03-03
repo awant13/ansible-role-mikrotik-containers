@@ -21,7 +21,7 @@ container_bridge: Docker-Bridge
 ```yaml
 mik:
   hosts:
-    ns.uol25.ru:
+    mikrotik.local:
       ansible_connection: local
       mik_username: {{ MIKROTIK_USER }}
       mik_password: {{ MIKROTIK_PASS }}
