@@ -1,0 +1,68 @@
+---
+##
+# Mounts containers
+##
+
+- name: Get existing containers mounts
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container mounts
+    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  register: existing_container_mounts
+  tags: mounts
+
+- debug:
+    var: existing_container_mounts
+  tags: mounts
+
+- name: Create ports on MikroTik
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container mounts
+    cmd: "add name={{ mount.1.name}} src={{ mount.1.src }} dst={{ mount.1.dst }}  comment={{ desc }}_{{ mount.0.name}}"
+  loop: "{{ containers | subelements('mounts', skip_missing=True) }}"
+  loop_control:
+    loop_var: mount
+    index_var: idx
+  ignore_errors: yes
+  register: result_add_mounts
+  when: mount.0.state == "present" and ('no results for' in (existing_container_mounts.results | selectattr('item.name', 'equalto', mount.0.name) | map(attribute='msg') | join(' ')))
+  tags: mounts 
+
+- debug:
+    var: result_add_mounts
+  tags: mounts 
+
+- name: Get remove mounts container configurations
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container mounts
+    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  register: remove_mounts
+  when: item.state == "absent"
+  tags: mounts
+
+- name: Extract mounts IDs to remove
+  set_fact:
+    mounts_ids_remove: "{{ remove_mounts.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
+  tags: mounts
+
+- name: Remove mounts on MikroTik
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container mounts 
+    remove: "{{ item }}"
+  loop: "{{ mounts_ids_remove }}"
+  ignore_errors: yes
+  register: result_mounts_remove
+  tags: mounts

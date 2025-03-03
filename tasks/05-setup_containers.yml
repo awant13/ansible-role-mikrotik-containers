@@ -1,0 +1,63 @@
+---
+##
+# Docker containers
+##
+
+- name: Build create container command
+  set_fact:
+    container_commands: "{{ container_commands | default([]) + [item.params | dict2items | map(attribute='key') | zip(item.params | dict2items | map(attribute='value') | map('default', '') ) | map('join', '=') | join(' ')] }}"
+  loop: "{{ containers }}"
+  register: command
+
+- name: Create containers on MikroTik
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    cmd: >-
+      add {{ container_commands[idx] }} 
+      interface={{ container_net }}_{{ item.name }} 
+      envlist={{ desc }}_{{ item.name}}_envs 
+      comment={{ desc }}_{{ item.name}}
+      {% if item.mounts is defined and item.mounts | length > 0 %} 
+      mounts={{ item.mounts | map(attribute='name') | join(',') }}
+      {% endif %}
+  loop: "{{ containers }}"
+  loop_control:
+    index_var: idx
+  ignore_errors: yes
+  register: result_add
+  when: item.state == "present" and ('no results' in existing_containers.results[idx].msg | default('') | string )
+
+- debug:
+    var: result_add
+
+- name: Get remove container configurations
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  register: remove_containers
+  when: item.state == "absent"
+
+- name: Extract container IDs to remove
+  set_fact:
+    container_ids_remove: "{{ remove_containers.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
+
+# - debug:
+#     var: container_ids_remove
+    
+- name: Remove containers on MikroTik
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    remove: "{{ item }}"
+  loop: "{{ container_ids_remove }}"
+  ignore_errors: yes
+  register: result_remove

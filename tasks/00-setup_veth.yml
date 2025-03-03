@@ -1,0 +1,80 @@
+---
+##
+# VETH Interface
+##
+
+- name: Build inteface command
+  set_fact:
+    interface_commands: "{{ interface_commands | default([]) + [item.interface | dict2items | map(attribute='key') | zip(item.interface | dict2items | map(attribute='value') | map('default', '') ) | map('join', '=') | join(' ')] }}"
+  loop: "{{ containers }}"
+  loop_control:
+    index_var: idx
+  register: command_int
+  tags: int
+
+- debug:
+    var: command_int
+  tags: int
+
+- name: Get existing veth interface
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: interface veth
+    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  register: existing_veth
+  tags: int
+
+- name: Get remove container configurations
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: interface veth
+    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  register: remove_veths
+  when: item.state == "absent"
+  tags: int
+
+- name: Extract veth IDs to remove
+  set_fact:
+    veth_ids_remove: "{{ remove_veths.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
+  tags: int
+
+- name: Remove veth on MikroTik
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: interface veth
+    remove: "{{ item }}"
+  loop: "{{ veth_ids_remove }}"
+  ignore_errors: yes
+  register: result_remove
+  tags: int
+
+- debug:
+    var: veth_ids_remove
+  tags: int
+
+- name: Create VETH interface
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: interface veth
+    cmd: "add {{ interface_commands[idx] }} comment={{ desc }}_{{ item.name}} name={{ container_net }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  loop_control:
+    index_var: idx
+  ignore_errors: yes
+  register: result_add_net
+  when: item.state == "present" and ('no results' in existing_veth.results[idx].msg | default('') | string )
+  tags: int
+
+- debug:
+    var: result_add_net
+  tags: int

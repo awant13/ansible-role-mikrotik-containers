@@ -1,0 +1,7 @@
+##
+# Global configs
+##
+
+desc: AnsibleControl
+container_net: DockerNet
+container_bridge: Docker-Bridge

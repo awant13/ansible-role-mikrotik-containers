@@ -1,0 +1,69 @@
+---
+##
+# Enviroments containers
+##
+
+- name: Get existing enviroments
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container envs
+    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  register: existing_enviroments
+  tags: envs
+
+- debug:
+    var: existing_enviroments
+  tags: envs
+
+- name: Get remove enviroments configurations
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container envs
+    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  register: remove_enviroments
+  when: item.state == "absent"
+  tags: envs
+
+- debug:
+    var: remove_enviroments
+
+- name: Extract bridge ports IDs to remove
+  set_fact:
+    enviroments_ids_remove: "{{ remove_enviroments.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
+
+- debug:
+    var: enviroments_ids_remove
+
+- name: Remove bridge ports on MikroTik
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container envs
+    remove: "{{ item }}"
+  loop: "{{ enviroments_ids_remove }}"
+  ignore_errors: yes
+  register: result_remove
+
+- name: Add container enviroments
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container envs
+    cmd: "add key={{ item.1.key }} name={{ desc }}_{{ item.0.name }}_envs value={{ item.1.value }} comment={{ desc }}_{{ item.0.name }}"
+  loop: "{{ containers | subelements('enviroments', skip_missing=True) }}"
+  when: item.0.state == "present" and ('no results for' in (existing_enviroments.results | selectattr('item.name', 'equalto', item.0.name) | map(attribute='msg') | join(' ')))
+  ignore_errors: yes
+  register: result_env
+  tags: envs
+
+- debug:
+    var:  result_env
+  tags: envs
