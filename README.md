@@ -11,9 +11,14 @@ sudo apt install python3-librouteros
 ## Role Variables
 
 ```yaml
-desc: AnsibleControl
+# Vars
+container_desc: Ansible_Managed
 container_net: DockerNet
 container_bridge: Docker-Bridge
+container_wan: ether1
+
+# Enable Debug
+debug: "true"
 ```
 
 ## Example inventory.yml
