@@ -1,4 +1,4 @@
-# ansible-role-mikrotik-containers
+# Ansible Role: Mikrotk Containers
 
 ## Requirements
 
@@ -6,6 +6,21 @@ python3-librouteros
 
 ```bash
 sudo apt install python3-librouteros
+```
+
+## Install role
+Add in requirements.yml
+
+```yaml
+roles:
+  - src: https://github.com/awant13/ansible-role-mikrotik-containers.git
+    scm: git
+    version: latest
+    name: containers
+``` 
+
+```bash
+ansible-galaxy install -f -r requirements.yml
 ```
 
 ## Role Variables
