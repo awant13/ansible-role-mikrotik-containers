@@ -1,18 +1,18 @@
 ---
 - name: Setup Veth
-  import_tasks: tasks/00_setup_veth.yml
+  import_tasks: tasks/00-setup_veth.yml
 
 - name: Setup Bridge
-  import_tasks: tasks/01_setup_bridge.yml
+  import_tasks: tasks/01-setup_bridge.yml
 
 - name: Setup Enviroments
-  import_tasks: tasks/02_setup_envs.yml
+  import_tasks: tasks/02-setup_envs.yml
   
 - name: Setup Firewall
-  import_tasks: tasks/03_setup_fw.yml
+  import_tasks: tasks/03-setup_fw.yml
 
 - name: Setup Mounts
-  import_tasks: tasks/04_setup_mounts.yml
+  import_tasks: tasks/04-setup_mounts.yml
 
 - name: Setup Containers
-  import_tasks: tasks/05_setup_containers.yml
+  import_tasks: tasks/05-setup_containers.yml
