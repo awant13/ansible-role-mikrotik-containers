@@ -48,7 +48,7 @@
     remove: "{{ item.1['.id'] }}"
   loop: "{{ envsId.results | subelements('msg') }}"
   register: result_remove
-  when: item.1['.id'] is defined
+  when: item.0.envs.state == 'absent' and item.1 is defined and item.1['.id'] is defined
   tags: envs
 
 - debug:
