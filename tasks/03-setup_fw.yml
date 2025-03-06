@@ -47,14 +47,10 @@
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: ip firewall nat 
-    remove: "{{ item.msg[0]['.id'] }}"
-  loop: "{{ fwId.results }}"
+    remove: "{{ item.1['.id'] }}"
+  loop: "{{ fwId.results | subelements('msg') }}"
   register: result_remove_fw
-  when: 
-    - item.fw is defined
-    - item.fw.state | default('present') == "absent"
-    - item.msg | length > 0
-    - item.msg[0]['.id'] is defined
+  when: item.1['.id'] is defined
   tags: fw
 
 - debug:

@@ -45,14 +45,10 @@
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container envs
-    remove: "{{ item.msg[0]['.id'] }}"
-  loop: "{{ envsId.results }}"
+    remove: "{{ item.1['.id'] }}"
+  loop: "{{ envsId.results | subelements('msg') }}"
   register: result_remove
-  when: 
-    - item.envs is defined
-    - item.envs.state | default('present') == "absent"
-    - item.msg | length > 0
-    - item.msg[0]['.id'] is defined
+  when: item.1['.id'] is defined
   tags: envs
 
 - debug:
