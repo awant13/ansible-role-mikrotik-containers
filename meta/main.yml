@@ -1,0 +1,21 @@
+---
+dependencies: []
+
+galaxy_info:
+  role_name: containers
+  author: awant13
+  description: Containers for RouterOS.
+  license: "license (BSD, MIT)"
+  min_ansible_version: 2.10
+  platforms:
+    - name: RouterOS
+      versions:
+        - RouterOS 7
+  galaxy_tags:
+    - mikrotik
+    - containers
+    - docker
+    - orchestration
+    - compose
+    - server
+    - API
