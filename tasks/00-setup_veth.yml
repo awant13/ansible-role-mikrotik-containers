@@ -3,78 +3,69 @@
 # VETH Interface
 ##
 
-- name: Build inteface command
+- name: Get .ids veth 
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: interface veth
+    query: ".id comment WHERE comment == {{ container_desc }}_{{ veth.name }}"
+  loop: "{{ containers }}"
+  loop_control:
+    loop_var: veth  
+  register: vethId
+  tags: int
+
+- debug:
+    var: vehtId
+  when: debug == true
+
+- name: Build interface command
   set_fact:
     interface_commands: "{{ interface_commands | default([]) + [item.interface | dict2items | map(attribute='key') | zip(item.interface | dict2items | map(attribute='value') | map('default', '') ) | map('join', '=') | join(' ')] }}"
   loop: "{{ containers }}"
-  loop_control:
-    index_var: idx
   register: command_int
+  when: item.state == "present"
   tags: int
 
 - debug:
     var: command_int
-  tags: int
+  when: debug == true
 
-- name: Get existing veth interface
+- name: Create veth 
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: interface veth
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
-  loop: "{{ containers }}"
-  register: existing_veth
-  tags: int
-
-- name: Get remove container configurations
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: interface veth
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
-  loop: "{{ containers }}"
-  register: remove_veths
-  when: item.state == "absent"
-  tags: int
-
-- name: Extract veth IDs to remove
-  set_fact:
-    veth_ids_remove: "{{ remove_veths.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
-  tags: int
-
-- name: Remove veth on MikroTik
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: interface veth
-    remove: "{{ item }}"
-  loop: "{{ veth_ids_remove }}"
-  ignore_errors: yes
-  register: result_remove
-  tags: int
-
-- debug:
-    var: veth_ids_remove
-  tags: int
-
-- name: Create VETH interface
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: interface veth
-    cmd: "add {{ interface_commands[idx] }} comment={{ desc }}_{{ item.name}} name={{ container_net }}_{{ item.name }}"
+    cmd: "add {{ interface_commands[idx] }} comment={{ container_desc }}_{{ item.name}} name={{ container_net }}_{{ item.name }}"
   loop: "{{ containers }}"
   loop_control:
     index_var: idx
-  ignore_errors: yes
-  register: result_add_net
-  when: item.state == "present" and ('no results' in existing_veth.results[idx].msg | default('') | string )
+  register: result_add_veth
+  when: item.state == "present" and ('no results' in vethId.results[idx].msg | default('') | string )
   tags: int
 
 - debug:
-    var: result_add_net
+    var: result_add_veth
+  when: debug == true
+
+- name: Remove veth
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: interface veth 
+    remove: "{{ item.msg[0]['.id'] }}"
+  loop: "{{ vethId.results }}"
+  register: result_remove
+  when: 
+    - item.veth is defined
+    - item.veth.state | default('present') == "absent"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
   tags: int
+
+- debug:
+    var: result_remove
+  when: debug == true

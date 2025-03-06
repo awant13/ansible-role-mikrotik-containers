@@ -3,67 +3,59 @@
 # Enviroments containers
 ##
 
-- name: Get existing enviroments
+- name: Get .ids envs
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container envs
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+    query: ".id comment WHERE comment == {{ container_desc }}_{{ envs.name }}"
   loop: "{{ containers }}"
-  register: existing_enviroments
+  loop_control:
+    loop_var: envs 
+  register: envsId
   tags: envs
 
 - debug:
-    var: existing_enviroments
+    var: envsId
+  when: debug == true
   tags: envs
 
-- name: Get remove enviroments configurations
+- name: Add container envs
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container envs
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
-  loop: "{{ containers }}"
-  register: remove_enviroments
-  when: item.state == "absent"
-  tags: envs
-
-- debug:
-    var: remove_enviroments
-
-- name: Extract bridge ports IDs to remove
-  set_fact:
-    enviroments_ids_remove: "{{ remove_enviroments.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
-
-- debug:
-    var: enviroments_ids_remove
-
-- name: Remove bridge ports on MikroTik
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: container envs
-    remove: "{{ item }}"
-  loop: "{{ enviroments_ids_remove }}"
-  ignore_errors: yes
-  register: result_remove
-
-- name: Add container enviroments
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: container envs
-    cmd: "add key={{ item.1.key }} name={{ desc }}_{{ item.0.name }}_envs value={{ item.1.value }} comment={{ desc }}_{{ item.0.name }}"
+    cmd: "add key={{ item.1.key }} name={{ container_desc }}_{{ item.0.name }}_envs value={{ item.1.value }} comment={{ container_desc }}_{{ item.0.name }}"
   loop: "{{ containers | subelements('enviroments', skip_missing=True) }}"
-  when: item.0.state == "present" and ('no results for' in (existing_enviroments.results | selectattr('item.name', 'equalto', item.0.name) | map(attribute='msg') | join(' ')))
+  when: item.0.state == "present" and ('no results for' in (envsId.results | selectattr('envs.name', 'equalto', item.0.name) | map(attribute='msg') | join(' ')))
   ignore_errors: yes
   register: result_env
   tags: envs
 
 - debug:
-    var:  result_env
+    var: result_env
+  when: debug == true
+  tags: envs
+
+- name: Remove container envs
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container envs
+    remove: "{{ item.msg[0]['.id'] }}"
+  loop: "{{ envsId.results }}"
+  register: result_remove
+  when: 
+    - item.envs is defined
+    - item.envs.state | default('present') == "absent"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
+  tags: envs
+
+- debug:
+    var: result_remove
+  when: debug == true
   tags: envs

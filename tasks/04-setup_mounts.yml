@@ -3,66 +3,62 @@
 # Mounts containers
 ##
 
-- name: Get existing containers mounts
+- name: Get .ids containers mounts
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container mounts
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+    query: ".id comment WHERE comment == {{ container_desc }}_{{ mount.name }}"
   loop: "{{ containers }}"
-  register: existing_container_mounts
-  tags: mounts
+  loop_control:
+    loop_var: mount 
+  register: mountId
+  tags: mount
 
 - debug:
-    var: existing_container_mounts
-  tags: mounts
+    var: mountId
+  when: debug == true
+  tags: mount
 
-- name: Create ports on MikroTik
+- name: Add containers mounts
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container mounts
-    cmd: "add name={{ mount.1.name}} src={{ mount.1.src }} dst={{ mount.1.dst }}  comment={{ desc }}_{{ mount.0.name}}"
+    cmd: "add name={{ mount.1.name}} src={{ mount.1.src }} dst={{ mount.1.dst }} comment={{ container_desc }}_{{ mount.0.name}}"
   loop: "{{ containers | subelements('mounts', skip_missing=True) }}"
   loop_control:
     loop_var: mount
     index_var: idx
   ignore_errors: yes
   register: result_add_mounts
-  when: mount.0.state == "present" and ('no results for' in (existing_container_mounts.results | selectattr('item.name', 'equalto', mount.0.name) | map(attribute='msg') | join(' ')))
-  tags: mounts 
+  when: mount.0.state == "present" and ('no results for' in (mountId.results | selectattr('mount.name', 'equalto', mount.0.name) | map(attribute='msg') | join(' ')))
+  tags: mount 
 
 - debug:
     var: result_add_mounts
-  tags: mounts 
+  when: debug == true
+  tags: mount
 
-- name: Get remove mounts container configurations
+- name: Remove container mounts
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container mounts
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
-  loop: "{{ containers }}"
-  register: remove_mounts
-  when: item.state == "absent"
-  tags: mounts
+    remove: "{{ item.msg[0]['.id'] }}"
+  loop: "{{ mountId.results }}"
+  register: result_remove_mounts
+  when: 
+    - item.mount is defined
+    - item.mount.state | default('present') == "absent"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
+  tags: mount
 
-- name: Extract mounts IDs to remove
-  set_fact:
-    mounts_ids_remove: "{{ remove_mounts.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
-  tags: mounts
-
-- name: Remove mounts on MikroTik
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: container mounts 
-    remove: "{{ item }}"
-  loop: "{{ mounts_ids_remove }}"
-  ignore_errors: yes
-  register: result_mounts_remove
-  tags: mounts
+- debug:
+    var:  result_remove_mounts
+  when: debug == true
+  tags: mount

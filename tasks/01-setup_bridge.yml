@@ -3,52 +3,61 @@
 # Bridge Port
 ##
 
-- name: Get existing bridge interface
+- name: Get .ids bridge ports
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: interface bridge port
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
+    query: ".id comment WHERE comment == {{ container_desc }}_{{ bridge.name }}"
   loop: "{{ containers }}"
-  register: existing_bridge_ports
+  loop_control:
+    loop_var: bridge  
+  register: bridgePortId
+  tags: bridge
 
-- name: Get remove container configurations
+- debug:
+    var: bridgeId
+  when: debug == true
+  tags: bridge
+
+- name: Add veth interface to bridge
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: interface bridge port
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
-  loop: "{{ containers }}"
-  register: remove_bridge_ports
-  when: item.state == "absent"
-
-- name: Extract bridge ports IDs to remove
-  set_fact:
-    bridge_ports_ids_remove: "{{ remove_bridge_ports.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
-
-- name: Remove bridge ports on MikroTik
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: interface bridge port
-    remove: "{{ item }}"
-  loop: "{{ bridge_ports_ids_remove }}"
-  ignore_errors: yes
-  register: result_remove
-
-- name: Add VETH interface to bridge
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: interface bridge port
-    cmd: "add bridge={{ container_bridge }} interface={{ container_net }}_{{ item.name }} comment={{ desc }}_{{ item.name}}"
+    cmd: "add bridge={{ container_bridge }} interface={{ container_net }}_{{ item.name }} comment={{ container_desc }}_{{ item.name}}"
   loop: "{{ containers }}"
   loop_control:
     index_var: idx
   ignore_errors: yes
   register: result_add_net_bridge
-  when: item.state == "present" and ('no results' in existing_bridge_ports.results[idx].msg | default('') | string )
+  when: item.state == "present" and ('no results' in bridgePortId.results[idx].msg | default('') | string )
+  tags: bridge
+
+- debug:
+    var: result_add_net_bridge
+  when: debug == true
+  tags: bridge
+
+- name: Remove veth from bridge
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: interface bridge port
+    remove: "{{ item.msg[0]['.id'] }}"
+  loop: "{{ bridgePortId.results }}"
+  register: result_remove_bridge_ports
+  when: 
+    - item.bridge is defined
+    - item.bridge.state | default('present') == "absent"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
+  tags: bridge
+
+- debug:
+    var: result_remove_bridge_ports
+  when: debug == true
+  tags: bridge

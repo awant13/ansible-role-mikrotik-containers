@@ -2,6 +2,9 @@
 # Global configs
 ##
 
-desc: AnsibleControl
+container_desc: Ansible_Managed
 container_net: DockerNet
 container_bridge: Docker-Bridge
+container_wan: ether1
+
+debug: "true"

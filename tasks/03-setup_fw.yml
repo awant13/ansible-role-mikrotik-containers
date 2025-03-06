@@ -3,65 +3,61 @@
 # Ports
 ##
 
-- name: Get existing firewall ports
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: ip firewall nat
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
-  loop: "{{ containers }}"
-  register: existing_firewall_ports
-  tags: ports
-
-- debug:
-    var: existing_firewall_ports
-  tags: ports
-
-- name: Create ports on MikroTik
+- name: Get .ids firewall ports
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: ip firewall nat 
-    cmd: "add chain=dstnat action=dst-nat to-addresses={{ port.0.interface.address.split('/')[0] }} protocol={{ port.1.protocol }} in-interface=ether1 dst-port={{ port.1.src }} to-ports={{ port.1.dst }} comment={{ desc }}_{{ port.0.name}}"
+    query: ".id comment WHERE comment == {{ container_desc }}_{{ fw.name }}"
+  loop: "{{ containers }}"
+  loop_control:
+    loop_var: fw 
+  register: fwId
+  tags: fw
+
+- debug:
+    var: fwId
+  when: debug == true
+  tags: fw
+
+- name: Add firewall ports
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: ip firewall nat 
+    cmd: "add chain=dstnat action=dst-nat to-addresses={{ port.0.interface.address.split('/')[0] }} protocol={{ port.1.protocol }} in-interface={{ container_wan }} dst-port={{ port.1.src }} to-ports={{ port.1.dst }} comment={{ container_desc }}_{{ port.0.name}}"
   loop: "{{ containers | subelements('ports', skip_missing=True) }}"
   loop_control:
     loop_var: port
     index_var: idx
-  ignore_errors: yes
-  register: result_add_ports
-  when: port.0.state == "present" and ('no results for' in (existing_firewall_ports.results | selectattr('item.name', 'equalto', port.0.name) | map(attribute='msg') | join(' ')))
-  tags: ports 
+  register: result_add_ports_fw
+  when: port.0.state == "present" and ('no results for' in (fwId.results | selectattr('fw.name', 'equalto', port.0.name) | map(attribute='msg') | join(' ')))
+  tags: fw 
 
 - debug:
-    var: result_add_ports
-  tags: ports
+    var: result_add_ports_fw
+  when: debug == true
+  tags: fw
 
-- name: Get remove container configurations
+- name: Remove firewall ports
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: ip firewall nat 
-    query: ".id comment WHERE comment == {{ desc }}_{{ item.name }}"
-  loop: "{{ containers }}"
-  register: remove_ports
-  when: item.state == "absent"
-  tags: ports
+    remove: "{{ item.msg[0]['.id'] }}"
+  loop: "{{ fwId.results }}"
+  register: result_remove_fw
+  when: 
+    - item.fw is defined
+    - item.fw.state | default('present') == "absent"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
+  tags: fw
 
-- name: Extract ports IDs to remove
-  set_fact:
-    ports_ids_remove: "{{ remove_ports.results | json_query('[*].msg[*].\".id\"') | select('defined') | flatten | select('string') | list }}"
-  tags: ports
-- name: Remove ports on MikroTik
-  community.routeros.api:
-    hostname: "{{ inventory_hostname }}"
-    username: "{{ mik_username }}"
-    password: "{{ mik_password }}"
-    path: ip firewall nat 
-    remove: "{{ item }}"
-  loop: "{{ ports_ids_remove }}"
-  ignore_errors: yes
-  register: result_ports_remove
-  tags: ports
+- debug:
+    var: result_remove_fw
+  when: debug == true
+  tags: fw
