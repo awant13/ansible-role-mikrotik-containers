@@ -9,7 +9,15 @@
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container
-    query: ".id comment WHERE comment == {{ container_desc }}_{{ container.name }}"
+    extended_query:
+      attributes:
+        - status
+        - .id
+        - comment
+      where:
+        - attribute: "comment"
+          is: "=="
+          value: "{{ container_desc }}_{{ container.name }}"
   loop: "{{ containers }}"
   loop_control:
     loop_var: container 
@@ -26,6 +34,7 @@
     container_commands: "{{ container_commands | default([]) + [item.params | dict2items | map(attribute='key') | zip(item.params | dict2items | map(attribute='value') | map('default', '') ) | map('join', '=') | join(' ')] }}"
   loop: "{{ containers }}"
   register: command
+  tags: container
 
 - name: Add containers
   community.routeros.api:
@@ -46,11 +55,61 @@
     index_var: idx
   ignore_errors: yes
   register: result_add_container
-  when: item.state == "present" and ('no results' in containerId.results[idx].msg | default('') | string )
+  when: item.state == "present" and (containerId.results[idx].msg | default([]) | length == 0)
   tags: container
 
 - debug:
     var: result_add_container
+  when: debug == true
+  tags: container
+
+- name: Stop Container
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    cmd: stop .id={{ item.msg[0]['.id'] }}
+  loop: "{{ containerId.results }}"
+  register: result_stop_container
+  when: 
+    - item.container is defined
+    - item.container.state | default('present') == "absent"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
+  tags: container
+
+- debug:
+    var: result_stop_container
+  when: debug == true
+  tags: container
+
+- name: Wait container stop
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    extended_query:
+      attributes:
+        - status
+        - comment
+      where:
+      - attribute: "comment"
+        is: "=="
+        value: "{{ container_desc }}_{{ container.name }}"
+  loop: "{{ containers }}"
+  loop_control:
+    loop_var: container 
+  register: container_status
+  until: container_status.msg is defined and (container_status.msg | selectattr('status', 'equalto', 'stopped') | list | length) == containers | length
+  retries: 10
+  delay: 5
+  when: container.state == "absent"  and (container_status.msg | default([]) | length == 0)
+  tags: container
+
+- debug:
+    var: container_status
   when: debug == true
   tags: container
 
