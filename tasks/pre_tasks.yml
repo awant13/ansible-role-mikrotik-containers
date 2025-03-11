@@ -69,13 +69,15 @@
   loop_control:
     index_var: idx
   register: container_status
-  until: container_status.msg is defined and (container_status.msg | selectattr('status', 'equalto', 'stopped') )
+  until:  container_status.msg is defined and (container_status.msg | selectattr('status', 'in', ['stopped', 'error']) | list | length > 0)
   retries: 2
   delay: 5
   when: 
-    - item.state == "absent"
-    - containerId.results | map(attribute='msg') | select('ne', []) | list | length > 0  
-  tags: pre-task1
+  - item.state == "absent"
+  - containerId.results is defined
+  - containerId.results | selectattr('msg', 'defined') | map(attribute='msg') | select('ne', []) | list | length > 0
+
+  tags: pre-task
 
 - debug:
     var: container_status
