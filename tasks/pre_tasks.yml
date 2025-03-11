@@ -1,0 +1,104 @@
+---
+##
+# Stop and remove container
+##
+
+- name: Pre-task Get .ids containers
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    extended_query:
+      attributes:
+        - status
+        - .id
+        - comment
+      where:
+        - attribute: "comment"
+          is: "=="
+          value: "{{ container_desc }}_{{ container.name }}"
+  loop: "{{ containers }}"
+  loop_control:
+    loop_var: container 
+  register: containerId
+  when: container.state == "absent"
+  tags: pre-task
+
+- debug:
+    var: containerId
+  when: debug == true
+  tags:  pre-task
+
+- name: Pre-task Stop Container
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    cmd: stop .id={{ item.msg[0]['.id'] }}
+  loop: "{{ containerId.results }}"
+  register: result_stop_container
+  when: 
+    - item.container is defined
+    - item.container.state | default('present') == "absent"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
+  tags: pre-task
+
+- debug:
+    var: result_stop_container
+  when: debug == true
+  tags: pre-task
+
+- name: Pre-task Wait container stop
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    extended_query:
+      attributes:
+        - status
+        - comment
+      where:
+      - attribute: "comment"
+        is: "=="
+        value: "{{ container_desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  loop_control:
+    index_var: idx
+  register: container_status
+  until: container_status.msg is defined and (container_status.msg | selectattr('status', 'equalto', 'stopped') )
+  retries: 2
+  delay: 5
+  when: 
+    - item.state == "absent"
+    - containerId.results | map(attribute='msg') | select('ne', []) | list | length > 0  
+  tags: pre-task1
+
+- debug:
+    var: container_status
+  when: debug == true
+  tags: pre-task
+
+- name: Pre-task Remove container
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    remove: "{{ item.msg[0]['.id'] }}"
+  loop: "{{ containerId.results }}"
+  register: result_remove_container
+  when: 
+    - item.container is defined
+    - item.container.state | default('present') == "absent"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
+  tags: pre-task
+
+- debug:
+    var: result_remove_container
+  when: debug == true
+  tags: pre-task

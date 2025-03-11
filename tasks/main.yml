@@ -1,4 +1,7 @@
 ---
+- name: Pre-task
+  import_tasks: tasks/pre_tasks.yml
+
 - name: Setup Veth
   import_tasks: tasks/00-setup_veth.yml
 
