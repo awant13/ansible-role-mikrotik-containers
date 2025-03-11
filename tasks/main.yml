@@ -19,3 +19,6 @@
 
 - name: Setup Containers
   import_tasks: tasks/05-setup_containers.yml
+
+- name: Starting Container
+  import_tasks: tasks/06-starting_containers.yml

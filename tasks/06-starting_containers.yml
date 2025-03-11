@@ -1,0 +1,62 @@
+- name: Get .ids starting containers
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    extended_query:
+      attributes:
+        - status
+        - .id
+        - comment
+      where:
+        - attribute: "comment"
+          is: "=="
+          value: "{{ container_desc }}_{{ container.name }}"
+  loop: "{{ containers }}"
+  loop_control:
+    loop_var: container 
+  register: containerId
+  when: container.state == "present"
+  tags: starting
+
+- name: Wait container extracting
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    extended_query:
+      attributes:
+        - status
+        - comment
+      where:
+      - attribute: "comment"
+        is: "=="
+        value: "{{ container_desc }}_{{ item.name }}"
+  loop: "{{ containers }}"
+  loop_control:
+    index_var: idx
+  register: container_status
+  until: container_status.msg is defined and (container_status.msg | selectattr('status', 'in', ['stopped', 'running']) | list | length > 0)
+  retries: 2
+  delay: 5
+  when: 
+    - item.state == "present"
+    - containerId.results | map(attribute='msg') | select('ne', []) | list | length > 0  
+  tags: starting
+
+- name: Start Container
+  community.routeros.api:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ mik_username }}"
+    password: "{{ mik_password }}"
+    path: container
+    cmd: start .id={{ item.msg[0]['.id'] }}
+  loop: "{{ containerId.results }}"
+  when: 
+    - item.container is defined
+    - item.container.state | default('present') == "present"
+    - item.msg | length > 0
+    - item.msg[0]['.id'] is defined
+  tags: starting
