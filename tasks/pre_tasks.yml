@@ -70,12 +70,9 @@
     index_var: idx
   register: container_status
   until:  container_status.msg is defined and (container_status.msg | selectattr('status', 'in', ['stopped', 'error']) | list | length > 0)
-  retries: 2
+  retries: 10
   delay: 5
-  when: 
-  - item.state == "absent"
-  - containerId.results is defined
-  - containerId.results | selectattr('msg', 'defined') | map(attribute='msg') | select('ne', []) | list | length > 0
+  when: item.state == "absent" and (containerId.results[idx].msg is defined and containerId.results[idx].msg | length > 0)
 
   tags: pre-task
 
