@@ -23,14 +23,40 @@ Before using this role, install the required package:
 sudo apt install python3-librouteros
 ```
 
-## 📥 Install role
+## 📟 Setup MikroTik 
+
+#### Enable container mode
+
+> ⚠ **WARNING**: You will need to confirm the device-mode with a press of the reset button, or a cold reboot, if using container on X86.
+
+```bash
+/system/device-mode/update container=yes
+```
+#### Create network
+
+```bash 
+/interface/bridge/add name=Docker-Bridge
+/ip/address/add address=192.168.40.1/24 interface=Docker-Bridge
+```
+#### Setup NAT for outgoing traffic
+
+```bash 
+/ip/firewall/nat/add chain=srcnat action=masquerade src-address=192.168.40.1/24
+```
+
+## 📥 Installation roles
 Add in requirements.yml
 
 ```yaml
+collections:  
+  - name: community.general
+  - name: ansible.posix
+  - name: community.routeros
+
 roles:
   - src: https://github.com/awant13/ansible-role-mikrotik-containers.git
     scm: git
-    version: latest
+    version: v1.1.0
     name: containers
 ``` 
 
@@ -48,7 +74,7 @@ container_bridge: Docker-Bridge
 container_wan: ether1
 
 # Enable Debug
-debug: "true"
+debug: "false"
 ```
 
 ## 🖥️ Example inventory.yml
