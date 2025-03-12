@@ -10,7 +10,7 @@
 - 🌱 **Environment Variables**: key-value pairs  
 - 📂 **Storage**: Host-to-container mounts (`src`, `dst`)  
 - 🔀 **Port Forwarding**: `src` → `dst` (`protocol: tcp/udp`)  
-- 🏷️ **Registry Support**: External registries (`ghcr.io`)  
+- 🏷️ **Registry Support**: External registries for each container separately.
 -  📌 **State Management**: `present` / `absent`  
 
 ---
