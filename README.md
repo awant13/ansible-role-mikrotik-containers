@@ -1,47 +1,17 @@
-# Ansible Role: Mikrotik Containers  
+# 🚀 Ansible Role: Mikrotik Containers  
 
-## 🚀 Features  
-
-> ⚠ **WARNING**  
-> To change container parameters, it must be recreated.  
+> ⚠ **WARNING**: To change container parameters, it must be recreated.  
 > The `community.routeros.api` module **does not support idempotency**.  
 
-### 🛠️ General  
-- ✅ Supports **multiple containers**.  
-- ✅ Uses **RouterOS API (`community.routeros.api`)**, but **without idempotency**.  
-
-### 📦 Container Management (`containers`)  
-Each container entry includes:  
-- **Unique container name** (`name`).  
-- **Container creation parameters** (`params`):  
-  - `remote-image` – Specifies the container image.  
-  - `root-dir` – Defines the working directory for the container.  
-
-### 🌐 Networking (`interface`)  
-- ✅ Defines **veth network interface** for the container:  
-  - `address` – Assigns an IP address (e.g., `192.168.40.10/24`).  
-  - `gateway` – Sets a gateway for routing (e.g., `192.168.40.1`).  
-
-### 🌱 Environment Variables (`environments`) *(Optional)*  
-- ✅ Supports **custom environment variables** inside the container:  
-  - Defined as key-value pairs (`key`, `value`).  
-
-### 📂 Storage (`mounts`) *(Optional)*  
-- ✅ Supports **host-to-container directory mounts**:  
-  - `src` – Path on the host machine.  
-  - `dst` – Path inside the container.  
-
-### 🔥 Port Forwarding (`ports`) *(Optional)*  
-- ✅ Configures **firewall (fw) port mapping**:  
-  - `src` – Source port on the host.  
-  - `dst` – Destination port inside the container.  
-  - `protocol` – Supported protocol (`tcp`/`udp`).  
-
-### 🏷️ Container Image Registry (`registry`)  
-- ✅ Supports **external container registries**, e.g., `ghcr.io`.  
-
-### 📌 State Management (`state`)  
-- ✅ Controls the **presence (`present`) or removal (`absent`)** of the container.  
+## 🛠 Features  
+- 📦  **Multiple containers** support  
+- 🔥 Uses **RouterOS API (`community.routeros.api`)** (No idempotency)  
+- 🌐 **Networking**: veth interface (`address`, `gateway`)  
+- 🌱 **Environment Variables**: key-value pairs  
+- 📂 **Storage**: Host-to-container mounts (`src`, `dst`)  
+- 🔀 **Port Forwarding**: `src` → `dst` (`protocol: tcp/udp`)  
+- 🏷️ **Registry Support**: External registries (`ghcr.io`)  
+-  📌 **State Management**: `present` / `absent`  
 
 ---
 
@@ -53,7 +23,7 @@ Before using this role, install the required package:
 sudo apt install python3-librouteros
 ```
 
-## Install role
+## 📥 Install role
 Add in requirements.yml
 
 ```yaml
@@ -68,7 +38,7 @@ roles:
 ansible-galaxy install -f -r requirements.yml
 ```
 
-## Role Variables
+## ⚙️ Role Variables
 
 ```yaml
 # Vars
@@ -81,7 +51,7 @@ container_wan: ether1
 debug: "true"
 ```
 
-## Example inventory.yml
+## 🖥️ Example inventory.yml
 
 ```yaml
 mik:
@@ -93,7 +63,7 @@ mik:
 
 ```
 
-## Example group_vars all/main.yml
+## 📜 Example group_vars all/main.yml
 
 ```yaml
 containers:
