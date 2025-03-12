@@ -1,6 +1,6 @@
 ---
 ##
-# Enviroments containers
+# environments containers
 ##
 
 - name: Get .ids envs
@@ -28,7 +28,7 @@
     password: "{{ mik_password }}"
     path: container envs
     cmd: 'add key={{ item.1.key }} name={{ container_desc }}_{{ item.0.name }}_envs value="{{ item.1.value }}" comment={{ container_desc }}_{{ item.0.name }}'
-  loop: "{{ containers | subelements('enviroments', skip_missing=True) }}"
+  loop: "{{ containers | subelements('environments', skip_missing=True) }}"
   when: item.0.state == "present" and ('no results for' in (envsId.results | selectattr('envs.name', 'equalto', item.0.name) | map(attribute='msg') | join(' ')))
   ignore_errors: yes
   register: result_env
