@@ -56,7 +56,7 @@ collections:
 roles:
   - src: https://github.com/awant13/ansible-role-mikrotik-containers.git
     scm: git
-    version: v1.1.0
+    version: v1.1.1
     name: containers
 ``` 
 
@@ -72,6 +72,8 @@ container_desc: Ansible_Managed
 container_net: DockerNet
 container_bridge: Docker-Bridge
 container_wan: ether1
+
+mik_api_port: 8728
 
 # Enable Debug
 debug: "false"
