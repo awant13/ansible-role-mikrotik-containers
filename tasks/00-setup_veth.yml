@@ -6,6 +6,7 @@
 - name: Get .ids veth 
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: interface veth
@@ -35,6 +36,7 @@
 - name: Create veth 
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: interface veth
@@ -53,6 +55,7 @@
 - name: Remove veth
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: interface veth 

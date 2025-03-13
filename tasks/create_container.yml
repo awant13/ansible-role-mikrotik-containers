@@ -2,6 +2,7 @@
 - name: Change registry for container
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container config
@@ -13,6 +14,7 @@
 - name: Add container
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container

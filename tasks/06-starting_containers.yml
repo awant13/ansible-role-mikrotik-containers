@@ -6,6 +6,7 @@
 - name: Get .ids starting containers
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container
@@ -28,6 +29,7 @@
 - name: Wait container extracting
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container
@@ -55,6 +57,7 @@
 - name: Start Container
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container

@@ -6,6 +6,7 @@
 - name: Pre-task Get .ids containers
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container
@@ -33,6 +34,7 @@
 - name: Pre-task Stop Container
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container
@@ -54,6 +56,7 @@
 - name: Pre-task Wait container stop
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container
@@ -84,6 +87,7 @@
 - name: Pre-task Remove container
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container

@@ -6,6 +6,7 @@
 - name: Get .ids containers mounts
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container mounts
@@ -24,6 +25,7 @@
 - name: Add containers mounts
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container mounts
@@ -45,6 +47,7 @@
 - name: Remove container mounts
   community.routeros.api:
     hostname: "{{ inventory_hostname }}"
+    port: "{{ mik_api_port }}"
     username: "{{ mik_username }}"
     password: "{{ mik_password }}"
     path: container mounts

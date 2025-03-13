@@ -7,4 +7,6 @@ container_net: DockerNet
 container_bridge: Docker-Bridge
 container_wan: ether1
 
-debug: "true"
+mik_api_port: 8728
+
+debug: "false"
