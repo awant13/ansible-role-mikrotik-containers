@@ -50,7 +50,6 @@
     - item.state == "present"
     - containerId.results is defined
     - containerId.results | selectattr('msg', 'defined') | map(attribute='msg') | select('ne', []) | list | length > 0
-    
   tags: starting
 
 - name: Start Container

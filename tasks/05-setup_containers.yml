@@ -36,8 +36,8 @@
   register: command
   tags: container
 
-- name: Include container setup tasks
-  include_tasks: loop_containers.yml
+- name: Create containers
+  include_tasks: create_container.yml
   loop: "{{ containers }}"
   loop_control:
     index_var: idx
